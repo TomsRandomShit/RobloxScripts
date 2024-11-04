@@ -1,13 +1,19 @@
+-- Originally released on v3rmillion by https://v3rm.net/threads/fisch-auto-fish.13532/
 local Players = game:GetService('Players')
 local CoreGui = game:GetService('StarterGui')
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local ContextActionService = game:GetService('ContextActionService')
 local VirtualInputManager = game:GetService('VirtualInputManager')
 
 local LocalPlayer = Players.LocalPlayer
 
+local Enabled = false
 local Rod = false
+local Casted = false
 local Progress = false
 local Finished = false
+
+local Keybind = Enum.KeyCode.F
 
 function ShowNotification(String)
     CoreGui:SetCore('SendNotification', {
@@ -15,6 +21,24 @@ function ShowNotification(String)
         Text = String,
         Duration = 1
     })
+end
+
+function ToggleFarm(Name, State, Input)
+    if State == Enum.UserInputState.Begin then
+        Enabled = not Enabled
+        LocalPlayer.Character.HumanoidRootPart.Anchored = Enabled
+        
+        if not Enabled then
+            Finished = false
+            Progress = false
+            
+            if Rod then
+                Rod.events.reset:FireServer()
+            end
+        end
+        
+        ShowNotification(`Status: {Enabled}`)
+    end
 end
 
 LocalPlayer.Character.ChildAdded:Connect(function(Child)
@@ -25,6 +49,7 @@ end)
 
 LocalPlayer.Character.ChildRemoved:Connect(function(Child)
     if Child == Rod then
+        Enabled = false
         Finished = false
         Progress = false
         Rod = nil
@@ -53,7 +78,7 @@ end)
 
 coroutine.wrap(function()
     while true do
-        if not Progress then
+        if Enabled and not Progress then
             if Rod then
                 Progress = true
                 task.wait(0.5)
@@ -72,4 +97,5 @@ if NewRod and NewRod.Name:lower():find('rod') then
     Rod = NewRod
 end
 
-ShowNotification("Auto fishing script started.")
+ContextActionService:BindAction('ToggleFarm', ToggleFarm, false, Keybind)
+ShowNotification(`Press '{Keybind.Name}' to enable/disable`)
